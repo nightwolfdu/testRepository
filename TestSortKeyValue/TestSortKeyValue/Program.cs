@@ -32,7 +32,7 @@ namespace TestSortKeyValue {
             //            var result = BeautifulSortClass.BeautifulSort(testDict);
             //            File.WriteAllLines(OutPath,result.Select(pair => pair.Key + " > " + pair.Value));
             //Быстрый способ
-            new FastCardSortClass(TestCasePath, DefaultLineSeparator, OutPath).FastSort();
+            new FastCardSortClass(TestCasePath, DefaultLineSeparator, OutPath).Do();
         }
 
 
@@ -42,7 +42,7 @@ namespace TestSortKeyValue {
                 "Москва > Париж",
                 "Кельн > Москва",
                 "Питер > Лондон",
-                "Париж > Питер",
+                "Париж > Питер"
             });
         }
 
@@ -89,12 +89,21 @@ public class FastCardSortClass {
         OutPath = outPath;
     }
 
-    public void FastSort() {
-        string line;
-        var file = new StreamReader(TestCasePath);
-        while ((line = file.ReadLine()) != null) {
+    public IEnumerable<string> ReadInput() {
+        return File.ReadAllLines(TestCasePath);//Можно переписать на построчное чтение и коллекцию с итератором. Чтобы IEnumerable читался действительно построчно из файла. Но уже лень.
+    }
+    public void WriteResult(IEnumerable<string> result){
+        File.WriteAllLines(OutPath, result);
+    }
+
+    public void Do() {
+        WriteResult(FastSort(ReadInput()));
+    }
+
+    public IEnumerable<string> FastSort(IEnumerable<string> inputStrings) {
+        foreach (var line in inputStrings) {
             var keyAndValue = line.Split(DefaultLineSeparator, StringSplitOptions.RemoveEmptyEntries);
-                //Можно реализовывать свой split, аккуратно разделяя на char[], но откровенно лень.
+            //Можно реализовывать свой split, аккуратно разделяя на char[], но откровенно лень.
             var newCard = new Card(DefaultLineSeparator[0]) {
                 Key = keyAndValue[0],
                 Value = keyAndValue[1]
@@ -114,44 +123,47 @@ public class FastCardSortClass {
             Card.CardKeyToCardsDict.Add(newCard.Key, newCard);
             Card.CardValueToCardsDict.Add(newCard.Value, newCard);
         }
-        file.Close();
-        File.WriteAllText(OutPath, Card.ToStringCardCollection());
-    }
-
-    public class Card {
-        private readonly string _defaultLineSeparator;
-
-        public Card(string defaultLineSeparator) {
-            _defaultLineSeparator = defaultLineSeparator;
-        }
-
-        public static HashSet<string> PossibleFirstNodeKeys = new HashSet<string>();
-        public static Dictionary<string, Card> CardKeyToCardsDict = new Dictionary<string, Card>();
-        public static Dictionary<string, Card> CardValueToCardsDict = new Dictionary<string, Card>();
-        public string Key;
-        public string Value;
-        public Card Next;
-
-        public override string ToString() {
-            // Для длинных строк использование StringBuilder должно быть оправдано, хотя тут надо посмотреть
-            var builder = new StringBuilder(Key.Length + Value.Length + _defaultLineSeparator.Length);
-            builder.Append(Key);
-            builder.Append(_defaultLineSeparator);
-            builder.Append(Value);
-            return builder.ToString();
-        }
-
-        public static string ToStringCardCollection() {
-            var current = CardKeyToCardsDict[PossibleFirstNodeKeys.First()];
-            var resultStrings = new List<string>();
-            do {
-                resultStrings.Add(current.ToString());
-                current = current.Next;
-            } while (current != null);
-            return resultStrings.StrJoin(Environment.NewLine);
-        }
+        return Card.ToCardCollection();
     }
 }
+
+public class Card {
+    private readonly string _defaultLineSeparator;
+
+    public Card(string defaultLineSeparator) {
+        _defaultLineSeparator = defaultLineSeparator;
+    }
+
+    public static HashSet<string> PossibleFirstNodeKeys = new HashSet<string>();
+    public static Dictionary<string, Card> CardKeyToCardsDict = new Dictionary<string, Card>();
+    public static Dictionary<string, Card> CardValueToCardsDict = new Dictionary<string, Card>();
+    public string Key;
+    public string Value;
+    public Card Next;
+
+    public override string ToString() {
+        // Для длинных строк использование StringBuilder должно быть оправдано, хотя тут надо посмотреть
+        var builder = new StringBuilder(Key.Length + Value.Length + _defaultLineSeparator.Length);
+        builder.Append(Key);
+        builder.Append(_defaultLineSeparator);
+        builder.Append(Value);
+        return builder.ToString();
+    }
+
+    public static string ToStringCardCollection() {
+        return ToCardCollection().StrJoin(Environment.NewLine);
+    }
+    public static List<string> ToCardCollection() {
+        var current = CardKeyToCardsDict[PossibleFirstNodeKeys.First()];
+        var resultStrings = new List<string>();
+        do {
+            resultStrings.Add(current.ToString());
+            current = current.Next;
+        } while (current != null);
+        return resultStrings;
+    }
+}
+
 
 
 
