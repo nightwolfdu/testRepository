@@ -19,56 +19,118 @@ using System.Text;
 //Написать тесты
 //Оценивается правильность работы, производительность и читабельность кода
 
-
 namespace TestSortKeyValue {
     internal class Program {
         private const string TestCasePath = "./testCase.txt";
         private const string OutPath = "./testCaseOut.txt";
+        private static readonly string [] DefaultLineSeparator = { " > " };
+
         private static void Main(string[] args) {
             CreateTestCase();
-            var testDict= GetTestDictFromFile(); //O(n)- O(n^2) 
-            var result = BeautifulSort(testDict);
-            File.WriteAllLines(OutPath,result.Select(pair => pair.Key + " > " + pair.Value));
-        }
-        /// <summary>
-        /// Красивый способ - создание обратного индекса и поиск элемента которого нет в обратном индексе как первого. Сбор по цепочке. NOTE: итоговая сложность O(n) теоретическая, O(n^2) с понижающими коэффициентами - практическая
-        /// </summary>
-        private static KeyValuePair<string, string>[] BeautifulSort(Dictionary<string, string> testDict) {
-            
-            var reverseDict = testDict.ToDictionary(pair => pair.Value, pair => pair.Key); //O(n)- O(n^2) 
-            // Находим стартовый элемент для сбора цепочки. Лучший случай O(1) - первый же не найдем. Средний - O(n/2), худший - O(n). В теории. На практике чуть хуже, т.к. операция поиска на самом деле не совсем О(1)
-            var first = testDict.First(pair => !reverseDict.ContainsKey(pair.Key));
-
-            var result = new KeyValuePair<string, string>[testDict.Count];
-            var current = first;
-            result[0] = first;
-            for (int i = 1; i < result.Length; i++) {
-            // Еще O(n) в теории. 
-                current = new KeyValuePair<string, string>(current.Value, testDict[current.Value]);
-                result[i] = current;
+            //Красивый способ
+            //            var testDict= GetTestDictFromFile(); //O(n)- O(n^2) 
+            //            var result = BeautifulSortClass.BeautifulSort(testDict);
+            //            File.WriteAllLines(OutPath,result.Select(pair => pair.Key + " > " + pair.Value));
+            //Быстрый способ
+            string line;
+            var file = new StreamReader(TestCasePath);
+            while ((line = file.ReadLine()) != null) {
+                var keyAndValue = line.Split(DefaultLineSeparator, StringSplitOptions.RemoveEmptyEntries);//Можно реализовывать свой split, аккуратно разделяя на char[], но откровенно лень.
+                var newCard = new Card() {
+                    _key = keyAndValue[0],
+                    _value = keyAndValue[1]
+                };
+                Card nextCard = null;
+                if (Card.CardKeyToCardsDict.TryGetValue(newCard._value, out nextCard)) {
+                    newCard._next = nextCard;
+                    nextCard._previous = newCard;
+                    Card.possibleFirstNodeKeys.Remove(nextCard._key);
+                }
+                Card prevCard = null;
+                if (Card.CardValueToCardsDict.TryGetValue(newCard._key, out prevCard)) {
+                    prevCard._next = newCard;
+                    newCard._previous = prevCard;
+                } else {
+                    Card.possibleFirstNodeKeys.Add(newCard._key);
+                }
+                Card.CardKeyToCardsDict.Add(newCard._key, newCard);
+                Card.CardValueToCardsDict.Add(newCard._value, newCard);
             }
-            return result;
+            file.Close();
+            File.WriteAllText(OutPath,Card.ToStringCardCollection());
         }
 
-        /// <summary>
-        /// Получение тестового словаря из файла. NOTE: Сложность в отсутствие коллизий - O(n). n добавлений, сложность которых O(1) https://msdn.microsoft.com/ru-ru/library/k7z0zy8k(v=vs.110).aspx. 
-        /// На самом деле, сложность добавления в Dict.. больше чем O(1), т.к. а)в некоторых условиях его придется расширять; б) в случае коллизии ключи будут добавляться в список. Но для строк хэш-функция достаточно хороша.
-        /// </summary>
-        private static Dictionary<string, string> GetTestDictFromFile() {
-            var lines = File.ReadAllLines(TestCasePath);
-            return 
-                lines.Select(s => s.Split(new[] {" > "}, StringSplitOptions.RemoveEmptyEntries))
-                    .ToDictionary(strings => strings[0], strings => strings[1]); // O(n) лучшем случае, ближе к O(n^2) если придется расширять словарь. Быстрее можно сделать через new Dictionary(count) и перелив в новый словарь.
+        private class Card {
+            public static HashSet<string> possibleFirstNodeKeys = new HashSet<string>();
+            public static Dictionary<string,Card> CardKeyToCardsDict = new Dictionary<string, Card>();
+            public static Dictionary<string, Card> CardValueToCardsDict = new Dictionary<string, Card>();
+            public string _key;
+            public string _value;
+            public Card _next;
+            public Card _previous;
+            public override string ToString() {
+                // Для длинных строк использование StringBuilder должно быть оправдано, хотя тут надо посмотреть
+                var builder = new StringBuilder(_key.Length + _value.Length + DefaultLineSeparator[0].Length);
+                builder.Append(_key);
+                builder.Append(DefaultLineSeparator[0]);
+                builder.Append(_value);
+                return builder.ToString();
+            }
+
+            public static string ToStringCardCollection() {
+                var current = CardKeyToCardsDict[possibleFirstNodeKeys.First()];
+                List<string> resultStrings = new List<string>();
+                do {
+                    resultStrings.Add(current.ToString());
+                    current = current._next;
+                } while (current != null);
+                return resultStrings.StrJoin(Environment.NewLine);
+            }
         }
+
 
         private static void CreateTestCase() {
-            File.WriteAllLines(TestCasePath, new List<string>() {
-                "Париж > Питер",
+            File.WriteAllLines(TestCasePath, new List<string> {
                 "Мельбурн > Кельн",
                 "Москва > Париж",
                 "Кельн > Москва",
-                "Питер > Лондон ",
+//                "Париж > Питер",
+//                "Питер > Лондон"
             });
         }
+
+        /// <summary>
+        ///     Получение тестового словаря из файла. NOTE: Сложность в отсутствие коллизий - O(n). n добавлений, сложность которых
+        ///     O(1) https://msdn.microsoft.com/ru-ru/library/k7z0zy8k(v=vs.110).aspx.
+        ///     На самом деле, сложность добавления в Dict.. больше чем O(1), т.к. а)в некоторых условиях его придется расширять;
+        ///     б) в случае коллизии ключи будут добавляться в список. Но для строк хэш-функция достаточно хороша.
+        /// </summary>
+        private static Dictionary<string, string> GetTestDictFromFile() {
+            var lines = File.ReadAllLines(TestCasePath);
+            // O(n) лучшем случае, ближе к O(n^2) если придется расширять словарь. Быстрее можно сделать через new Dictionary(count) и перелив в новый словарь.
+            return
+                lines.Select(s => s.Split(DefaultLineSeparator, StringSplitOptions.RemoveEmptyEntries))
+                    .ToDictionary(strings => strings[0], strings => strings[1]);
+        }
+    }
+}
+
+public static class StringExtension
+{
+    public static string StrJoin(this IEnumerable<string> thisStrings, string delimeter)
+    {
+        var builder = new StringBuilder();
+        var enumerator = thisStrings.GetEnumerator();
+        if (!enumerator.MoveNext())
+        {
+            return "";
+        }
+        builder.Append(enumerator.Current);
+        while (enumerator.MoveNext())
+        {
+            builder.Append(delimeter);
+            builder.Append(enumerator.Current);
+        }
+        return builder.ToString();
     }
 }
