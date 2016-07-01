@@ -44,13 +44,14 @@ namespace TestSortKeyValue {
                 "Мельбурн > Кельн",
                 "Москва > Париж",
                 "Кельн > Москва",
-                "Питер > Лондон",
-                "Париж > Питер",
-                "Караганда > Мельбурн",
-                "Тула > Венев",
-                "Лондон > Тула",
+//                "Питер > Лондон",
+//                "Париж > Питер",
+//                "Караганда > Мельбурн",
+//                "Тула > Венев",
+//                "Лондон > Тула"
             });
         }
+
         /// <summary>
         /// Прочитать вход
         /// </summary>
@@ -58,6 +59,7 @@ namespace TestSortKeyValue {
             //Можно переписать на построчное чтение и коллекцию с итератором. Чтобы IEnumerable читался действительно построчно из файла. Но уже лень.
             return File.ReadAllLines(TestCasePath);
         }
+
         /// <summary>
         /// Записать результат
         /// </summary>
@@ -65,6 +67,7 @@ namespace TestSortKeyValue {
         public static void WriteResult(IEnumerable<string> result) {
             File.WriteAllLines(OutPath, result);
         }
+
         /// <summary>
         /// Выполнить быстрый алгоритм сортировки карточек
         /// </summary>
@@ -78,8 +81,7 @@ namespace TestSortKeyValue {
         ///     На самом деле, сложность добавления в Dict.. больше чем O(1), т.к. а)в некоторых условиях его придется расширять;
         ///     б) в случае коллизии ключи будут добавляться в список. Но для строк хэш-функция достаточно хороша.
         /// </summary>
-        private static Dictionary<string, string> GetTestDictFromFile()
-        {
+        private static Dictionary<string, string> GetTestDictFromFile() {
             var lines = File.ReadAllLines(TestCasePath);
             // O(n) лучшем случае, ближе к O(n^2) если придется расширять словарь. Быстрее можно сделать через new Dictionary(count) и перелив в новый словарь.
             return
@@ -87,5 +89,4 @@ namespace TestSortKeyValue {
                     .ToDictionary(strings => strings[0], strings => strings[1]);
         }
     }
-
 }
