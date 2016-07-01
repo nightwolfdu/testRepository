@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace TestSortKeyValue {
     /// <summary>
@@ -9,23 +9,29 @@ namespace TestSortKeyValue {
     /// </summary>
     public class BeautifulSortClass {
         /// <summary>
-        ///     Красивый способ - создание обратного индекса и поиск элемента которого нет в обратном индексе как первого. Сбор по
-        ///     цепочке. NOTE: итоговая сложность O(n) теоретическая, O(n^2) с понижающими коэффициентами - практическая
+        /// Красивый способ - создание обратного индекса и поиск элемента которого нет в обратном индексе как первого. 
+        /// Сбор по цепочке.
+        ///  NOTE: итоговая сложность O(n) теоретическая, O(n^2) с понижающими коэффициентами - практическая. Можно ускорить, если собирать Dictionary не методом расширения, а руками, задав начальную емкость
         /// </summary>
-        public static KeyValuePair<string, string>[] BeautifulSort(Dictionary<string, string> testDict) {
+        public static string BeautifulSort(Dictionary<string, string> testDict) {
             var reverseDict = testDict.ToDictionary(pair => pair.Value, pair => pair.Key); //O(n)- O(n^2) 
             // Находим стартовый элемент для сбора цепочки. Лучший случай O(1) - первый же не найдем. Средний - O(n/2), худший - O(n). В теории. На практике чуть хуже, т.к. операция поиска на самом деле не совсем О(1)
             var first = testDict.First(pair => !reverseDict.ContainsKey(pair.Key));
-
-            var result = new KeyValuePair<string, string>[testDict.Count];
+            var builder = new StringBuilder();
             var current = first;
-            result[0] = first;
-            for (var i = 1; i < result.Length; i++) {
+            builder.Append(first.Key);
+            builder.Append(" > ");
+            builder.Append(first.Value);
+            builder.Append(Environment.NewLine);
+            for (var i = 1; i < testDict.Count; i++) {
                 // Еще O(n) в теории. 
                 current = new KeyValuePair<string, string>(current.Value, testDict[current.Value]);
-                result[i] = current;
+                builder.Append(current.Key);
+                builder.Append(" > ");
+                builder.Append(current.Value);
+                builder.Append(Environment.NewLine);
             }
-            return result;
+            return builder.ToString();
         }
     }
 }
