@@ -23,7 +23,7 @@ namespace TestSortKeyValue {
     internal class Program {
         private const string TestCasePath = "./testCase.txt";
         private const string OutPath = "./testCaseOut.txt";
-        private static readonly string [] DefaultLineSeparator = { " > " };
+        private static readonly string[] DefaultLineSeparator = {" > "};
 
         private static void Main(string[] args) {
             CreateTestCase();
@@ -32,60 +32,7 @@ namespace TestSortKeyValue {
             //            var result = BeautifulSortClass.BeautifulSort(testDict);
             //            File.WriteAllLines(OutPath,result.Select(pair => pair.Key + " > " + pair.Value));
             //Быстрый способ
-            string line;
-            var file = new StreamReader(TestCasePath);
-            while ((line = file.ReadLine()) != null) {
-                var keyAndValue = line.Split(DefaultLineSeparator, StringSplitOptions.RemoveEmptyEntries);//Можно реализовывать свой split, аккуратно разделяя на char[], но откровенно лень.
-                var newCard = new Card() {
-                    _key = keyAndValue[0],
-                    _value = keyAndValue[1]
-                };
-                Card nextCard = null;
-                if (Card.CardKeyToCardsDict.TryGetValue(newCard._value, out nextCard)) {
-                    newCard._next = nextCard;
-                    nextCard._previous = newCard;
-                    Card.possibleFirstNodeKeys.Remove(nextCard._key);
-                }
-                Card prevCard = null;
-                if (Card.CardValueToCardsDict.TryGetValue(newCard._key, out prevCard)) {
-                    prevCard._next = newCard;
-                    newCard._previous = prevCard;
-                } else {
-                    Card.possibleFirstNodeKeys.Add(newCard._key);
-                }
-                Card.CardKeyToCardsDict.Add(newCard._key, newCard);
-                Card.CardValueToCardsDict.Add(newCard._value, newCard);
-            }
-            file.Close();
-            File.WriteAllText(OutPath,Card.ToStringCardCollection());
-        }
-
-        private class Card {
-            public static HashSet<string> possibleFirstNodeKeys = new HashSet<string>();
-            public static Dictionary<string,Card> CardKeyToCardsDict = new Dictionary<string, Card>();
-            public static Dictionary<string, Card> CardValueToCardsDict = new Dictionary<string, Card>();
-            public string _key;
-            public string _value;
-            public Card _next;
-            public Card _previous;
-            public override string ToString() {
-                // Для длинных строк использование StringBuilder должно быть оправдано, хотя тут надо посмотреть
-                var builder = new StringBuilder(_key.Length + _value.Length + DefaultLineSeparator[0].Length);
-                builder.Append(_key);
-                builder.Append(DefaultLineSeparator[0]);
-                builder.Append(_value);
-                return builder.ToString();
-            }
-
-            public static string ToStringCardCollection() {
-                var current = CardKeyToCardsDict[possibleFirstNodeKeys.First()];
-                List<string> resultStrings = new List<string>();
-                do {
-                    resultStrings.Add(current.ToString());
-                    current = current._next;
-                } while (current != null);
-                return resultStrings.StrJoin(Environment.NewLine);
-            }
+            new FastCardSortClass(TestCasePath, DefaultLineSeparator, OutPath).FastSort();
         }
 
 
@@ -94,8 +41,8 @@ namespace TestSortKeyValue {
                 "Мельбурн > Кельн",
                 "Москва > Париж",
                 "Кельн > Москва",
-//                "Париж > Питер",
-//                "Питер > Лондон"
+                "Питер > Лондон",
+                "Париж > Питер",
             });
         }
 
@@ -115,22 +62,96 @@ namespace TestSortKeyValue {
     }
 }
 
-public static class StringExtension
-{
-    public static string StrJoin(this IEnumerable<string> thisStrings, string delimeter)
-    {
+public static class StringExtension {
+    public static string StrJoin(this IEnumerable<string> thisStrings, string delimeter) {
         var builder = new StringBuilder();
         var enumerator = thisStrings.GetEnumerator();
-        if (!enumerator.MoveNext())
-        {
+        if (!enumerator.MoveNext()) {
             return "";
         }
         builder.Append(enumerator.Current);
-        while (enumerator.MoveNext())
-        {
+        while (enumerator.MoveNext()) {
             builder.Append(delimeter);
             builder.Append(enumerator.Current);
         }
         return builder.ToString();
     }
 }
+
+public class FastCardSortClass {
+    public string TestCasePath { get; set; }
+    public string[] DefaultLineSeparator { get; set; }
+    public string OutPath { get; set; }
+
+    public FastCardSortClass(string testCasePath, string[] defaultLineSeparator, string outPath) {
+        TestCasePath = testCasePath;
+        DefaultLineSeparator = defaultLineSeparator;
+        OutPath = outPath;
+    }
+
+    public void FastSort() {
+        string line;
+        var file = new StreamReader(TestCasePath);
+        while ((line = file.ReadLine()) != null) {
+            var keyAndValue = line.Split(DefaultLineSeparator, StringSplitOptions.RemoveEmptyEntries);
+                //Можно реализовывать свой split, аккуратно разделяя на char[], но откровенно лень.
+            var newCard = new Card(DefaultLineSeparator[0]) {
+                Key = keyAndValue[0],
+                Value = keyAndValue[1]
+            };
+            Card nextCard;
+            if (Card.CardKeyToCardsDict.TryGetValue(newCard.Value, out nextCard)) {
+                newCard.Next = nextCard;
+                Card.PossibleFirstNodeKeys.Remove(nextCard.Key);
+            }
+            Card prevCard;
+            if (Card.CardValueToCardsDict.TryGetValue(newCard.Key, out prevCard)) {
+                prevCard.Next = newCard;
+            }
+            else {
+                Card.PossibleFirstNodeKeys.Add(newCard.Key);
+            }
+            Card.CardKeyToCardsDict.Add(newCard.Key, newCard);
+            Card.CardValueToCardsDict.Add(newCard.Value, newCard);
+        }
+        file.Close();
+        File.WriteAllText(OutPath, Card.ToStringCardCollection());
+    }
+
+    public class Card {
+        private readonly string _defaultLineSeparator;
+
+        public Card(string defaultLineSeparator) {
+            _defaultLineSeparator = defaultLineSeparator;
+        }
+
+        public static HashSet<string> PossibleFirstNodeKeys = new HashSet<string>();
+        public static Dictionary<string, Card> CardKeyToCardsDict = new Dictionary<string, Card>();
+        public static Dictionary<string, Card> CardValueToCardsDict = new Dictionary<string, Card>();
+        public string Key;
+        public string Value;
+        public Card Next;
+
+        public override string ToString() {
+            // Для длинных строк использование StringBuilder должно быть оправдано, хотя тут надо посмотреть
+            var builder = new StringBuilder(Key.Length + Value.Length + _defaultLineSeparator.Length);
+            builder.Append(Key);
+            builder.Append(_defaultLineSeparator);
+            builder.Append(Value);
+            return builder.ToString();
+        }
+
+        public static string ToStringCardCollection() {
+            var current = CardKeyToCardsDict[PossibleFirstNodeKeys.First()];
+            var resultStrings = new List<string>();
+            do {
+                resultStrings.Add(current.ToString());
+                current = current.Next;
+            } while (current != null);
+            return resultStrings.StrJoin(Environment.NewLine);
+        }
+    }
+}
+
+
+
