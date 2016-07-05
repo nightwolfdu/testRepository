@@ -1,14 +1,17 @@
-﻿namespace Windows_Miner {
-    public  class GameLogic {
+﻿using Windows_Miner.GameLogic;
+
+namespace Windows_Miner {
+    public class EmptyField : Field {
+        public override FieldType Type => FieldType.Empty;
     }
 
-    public class GameSquare {
+    public class NumberField : Field {
+        public override FieldType Type => FieldType.Number;
+        public int Number { get; set; }
     }
 
-    public abstract class Field {
-        FieldType type;
-
-        public abstract void OnClickLogic();
+    public class BombField : Field{
+        public override FieldType Type => FieldType.Bomb;
     }
 
     public enum FieldType {
